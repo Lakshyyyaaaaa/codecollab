@@ -10,7 +10,23 @@ export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Check if user already exists
+    // Manual validation
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (password.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
+    }
+
+    if (username.length < 3) {
+      return res
+        .status(400)
+        .json({ message: "Username must be at least 3 characters" });
+    }
+
     const existingUser = await User.findOne({
       $or: [{ email }, { username }],
     });
@@ -21,19 +37,16 @@ export const register = async (req, res) => {
       });
     }
 
-    // Create new user (password gets hashed automatically via pre-save hook)
     const user = await User.create({ username, email, password });
 
-    // Generate tokens
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
-    // Store refresh token in httpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(201).json({
@@ -47,6 +60,12 @@ export const register = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Register error:", error);
+    if (error.name === "ValidationError") {
+      return res
+        .status(400)
+        .json({ message: Object.values(error.errors)[0].message });
+    }
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
