@@ -26,7 +26,7 @@ const EditorPage = () => {
     const token = localStorage.getItem("accessToken");
 
     // Connect to socket
-    socketRef.current = io("http://localhost:5000", {
+    socketRef.current = io("https://codecollab-backend-zu29.onrender.com", {
       auth: { token },
     });
 
